@@ -3,7 +3,10 @@
   <img alt="fuck-figma-mcp" src="assets/banner-light.png" width="100%">
 </picture>
 
+
+
 Your AI's code runs in a local plugin inside the open file. Figma's cloud is not used, so you don't have the same limits as the official Figma MCP.
+
 
 ## <img src="assets/icons/install.svg" width="24" height="24" align="top" alt=""> Install
 
