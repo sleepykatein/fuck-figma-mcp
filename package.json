@@ -1,0 +1,19 @@
+{
+  "name": "fuck-figma-mcp",
+  "version": "2.0.0",
+  "description": "Unlimited Figma MCP: a local plugin bridge that runs Plugin API code in your open file",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "ws": "^8.22.2",
+    "zod": "^4.6.7"
+  }
+}

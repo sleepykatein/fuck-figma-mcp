@@ -1,0 +1,480 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face{font-family:Inter;font-weight:400;src:url(data:font/woff;base64,{{font:inter-400}}) format("woff")}
+@font-face{font-family:Inter;font-weight:600;src:url(data:font/woff;base64,{{font:inter-600}}) format("woff")}
+@font-face{font-family:"Monument Extended";font-weight:400;src:url(data:font/woff;base64,{{font:monument-400}}) format("woff")}
+@font-face{font-family:"JetBrains Mono";font-weight:400;src:url(data:font/woff;base64,{{font:jbmono-400}}) format("woff")}
+:root{
+  --frame:#0B080A;--sheet:#FFFFFF;--side:#F9F9FA;--line:#E8E8EC;
+  --text:#1F2328;--text2:#656B76;--text3:#A2A7B0;
+  --ink:#15161A;--err:#CF222E;--err-bg:rgba(207,34,46,.07);--err-bg-h:rgba(207,34,46,.11);
+  --hover:rgba(0,0,0,.04);--press:rgba(0,0,0,.08);
+  --ss:cubic-bezier(.333,0,.667,1);
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--frame);overflow:hidden}
+body{font:400 12px/18px Inter,system-ui,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased;user-select:none;cursor:default;font-feature-settings:"calt","kern"}
+button{font:inherit;color:inherit;background:none;border:0;cursor:default;outline:none}
+button:focus-visible{box-shadow:0 0 0 2px var(--sheet),0 0 0 3.5px var(--ink)}
+svg{flex:none;display:block;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+
+.press{transition:transform 180ms var(--ss),background-color 120ms var(--ss),color 120ms var(--ss),width 180ms var(--ss)}
+.press.down{transform:scale(var(--depth,.94));transition-duration:70ms,120ms,120ms,180ms}
+
+.shell{display:flex;flex-direction:column;height:100%;opacity:0;transform:scale(.97);transition:opacity 180ms var(--ss),transform 180ms var(--ss)}
+.shell.in{opacity:1;transform:none}
+
+.bar{height:38px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 16px}
+.mark{font:400 12px/1 "Monument Extended",Inter,sans-serif;color:#fff;letter-spacing:.02em;white-space:nowrap;text-transform:uppercase}
+
+.pill{position:relative;height:26px;border-radius:7px;overflow:hidden;color:rgba(255,255,255,.55)}
+.pill:hover{background:rgba(255,255,255,.08);color:#fff}
+.pill.on{background:#fff;color:var(--ink)}
+.pill.on:hover{background:rgba(255,255,255,.88)}
+.pill .pc{position:absolute;inset:0 auto 0 0;display:flex;align-items:center;gap:6px;padding:0 9px;font-weight:600;white-space:nowrap;transform-origin:15px 50%;transition:opacity 180ms var(--ss),transform 180ms var(--ss)}
+.pill .pc.out{opacity:0;transform:scale(.55)}
+
+.sheet{flex:1;min-height:0;margin:0 8px 8px;background:var(--sheet);border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
+
+.now{flex:none;padding:12px 14px 12px}
+.now-label{font-weight:600;font-size:13px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color 120ms var(--ss)}
+.now-label.quiet{color:var(--text2)}
+.now-sub{margin-top:2px;font-size:11px;line-height:16px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.now-sub.err{color:var(--err)}
+
+.sep{flex:none;position:relative;height:1px}
+.hl{position:absolute;inset:0;background:var(--line)}
+.seg{position:absolute;left:0;top:-.5px;width:25%;height:2px;border-radius:1px;background:var(--ink);opacity:0;transition:opacity 120ms var(--ss)}
+.sep.busy .seg{opacity:1;animation:sweep 1.2s var(--ss) infinite alternate}
+@keyframes sweep{from{transform:translateX(0)}to{transform:translateX(300%)}}
+
+.list{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:6px 0}
+.list::-webkit-scrollbar{width:12px}
+.list::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15) content-box;border:4px solid transparent;border-right-width:4px;border-left-width:4px;border-radius:6px;min-height:28px}
+.list:hover::-webkit-scrollbar-thumb{background-color:rgba(0,0,0,.22);border-left-width:3px;border-right-width:3px}
+.list::-webkit-scrollbar-thumb:active{background-color:rgba(0,0,0,.32)}
+.empty{padding:22px 0 0;text-align:center;color:var(--text3)}
+
+.item{margin:0 7px}
+.row{--depth:.985;height:24px;padding:0 8px 0 6px;border-radius:6px;display:flex;align-items:center;gap:7px;color:var(--text2)}
+.row:hover{background:var(--hover)}
+.item.open .row{background:var(--press);color:var(--text)}
+.row .ic{color:var(--text3);transition:color 120ms var(--ss)}
+.row:hover .ic,.item.open .row .ic{color:var(--text2)}
+.row .lb{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .mt{flex:none;font-family:var(--mono);font-size:11px;line-height:16px;color:var(--text3);display:flex;gap:8px}
+.item.running .row{color:var(--text)}
+.item.err .row{color:var(--err);background:var(--err-bg)}
+.item.err .row:hover{background:var(--err-bg-h)}
+.item.err .row .ic{color:var(--err)}
+.item.blocked .row .lb{color:var(--text3)}
+.item+.item{margin-top:1px}
+
+.ring{width:12px;height:12px;opacity:0;transition:opacity 120ms var(--ss);animation:spin .8s linear infinite}
+.ring.vis{opacity:1}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.det{display:grid;grid-template-rows:0fr;transition:grid-template-rows 200ms var(--ss)}
+.item.open .det{grid-template-rows:1fr}
+.det>div{min-height:0;overflow:hidden}
+.det-in{padding:6px 0 8px 6px}
+.facts{font-size:11px;line-height:16px;color:var(--text3);padding:0 0 6px 0}
+.facts b{font-weight:400;color:var(--text2)}
+.msg{font-family:var(--mono);font-size:11px;line-height:16px;color:var(--err);white-space:pre-wrap;word-break:break-word;padding:0 8px 6px 0;user-select:text;cursor:text}
+.code{background:var(--side);border-radius:6px;padding:6px 0;max-height:168px;overflow-y:auto;overflow-x:hidden;font-family:var(--mono);font-size:11px;line-height:16px;user-select:text;cursor:text}
+.code::-webkit-scrollbar{width:10px}
+.code::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15) content-box;border:3px solid transparent;border-radius:5px}
+.ln{display:flex;padding-right:8px}
+.ln .no{flex:none;width:4ch;margin:0 10px 0 4px;text-align:right;color:var(--text3)}
+.ln .tx{flex:1;min-width:0;white-space:pre-wrap;word-break:break-all;color:var(--text)}
+.ln.bad{background:var(--err-bg)}
+.ln.bad .no{color:var(--err)}
+.acts{display:flex;gap:2px;margin:6px 0 0 -3px}
+.gb{height:24px;padding:0 9px;border-radius:7px;display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:11px;color:var(--text2)}
+.gb:hover{background:var(--hover);color:var(--text)}
+
+.status{flex:none;height:24px;display:flex;align-items:center;gap:6px;padding:0 6px 0 14px;font-size:11px;line-height:16px;color:var(--text2);position:relative}
+.status::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:var(--line)}
+.status .file{flex:1;min-width:0;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:30px;height:18px;border-radius:5px;display:grid;place-items:center;color:var(--text2)}
+.ib:hover,.ib.on{background:var(--press);color:var(--text)}
+
+.grip{position:fixed;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize}
+
+@media (min-resolution:2dppx){.hl,.status::before{transform:scaleY(.5)}}
+@media (prefers-reduced-motion:reduce){.press.down{transform:none}.sep.busy .seg{animation:none;width:100%;opacity:.25}}
+</style>
+</head>
+<body>
+<div class="shell" id="shell">
+  <header class="bar">
+    <span class="mark">fuck-figma-mcp</span>
+    <button class="pill press" id="pause">
+      <span class="pc" id="pcPause"><svg width="17" height="17" viewBox="0 0 17 17"><path d="M6.5 5v7M10.5 5v7"/></svg>Pause</span>
+      <span class="pc out" id="pcResume"><svg width="17" height="17" viewBox="0 0 17 17"><path d="M6 4.9v7.2a.6.6 0 0 0 .92.5l5.6-3.6a.6.6 0 0 0 0-1l-5.6-3.6A.6.6 0 0 0 6 4.9Z" fill="currentColor" stroke="none"/></svg>Resume</span>
+    </button>
+  </header>
+  <main class="sheet">
+    <section class="now">
+      <div class="now-label quiet" id="nowLabel">Bridge offline</div>
+      <div class="now-sub" id="nowSub">Starts with a Claude session</div>
+    </section>
+    <div class="sep" id="sep"><div class="hl"></div><div class="seg"></div></div>
+    <div class="list" id="list"><div class="empty" id="empty">No steps yet</div></div>
+    <footer class="status">
+      <span id="conn">Offline</span><span class="file" id="file"></span>
+      <button class="ib press" id="follow" title="Follow changes"><svg width="15" height="15" viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.25"/><path d="M8 1.75v2.5M8 11.75v2.5M1.75 8h2.5M11.75 8h2.5"/></svg></button>
+    </footer>
+  </main>
+</div>
+<div class="grip" id="grip"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const post = (m) => parent.postMessage({ pluginMessage: m }, "*");
+
+const ICONS = {
+  run: '<path d="M5.5 4.5 2 8l3.5 3.5M10.5 4.5 14 8l-3.5 3.5"/>',
+  look: '<path d="M1.75 8s2.25-4.25 6.25-4.25S14.25 8 14.25 8 12 12.25 8 12.25 1.75 8 1.75 8Z"/><circle cx="8" cy="8" r="1.75"/>',
+  err: '<circle cx="8" cy="8" r="6.25"/><path d="M8 4.9v3.5"/><path d="M8 10.9v.1" stroke-width="1.8"/>',
+  blocked: '<circle cx="8" cy="8" r="6.25"/><path d="m3.7 12.3 8.6-8.6"/>',
+  select: '<path d="M3.5 3.5 7.6 13l1.5-4 4-1.5Z"/>',
+  copy: '<rect x="5.75" y="5.75" width="7.5" height="7.5" rx="1.75"/><path d="M10.25 3.5A1.5 1.5 0 0 0 8.75 2.75h-4.5a1.5 1.5 0 0 0-1.5 1.5v4.5a1.5 1.5 0 0 0 .75 1.3"/>',
+};
+const icon = (name, size = 16) => `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 16 16">${ICONS[name]}</svg>`;
+const RING = '<svg class="ring" viewBox="0 0 16 16"><path d="M8 2.25A5.75 5.75 0 1 1 2.25 8"/></svg>';
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const dur = (ms) => (ms < 1000 ? Math.round(ms) + " ms" : (ms / 1000).toFixed(ms < 10000 ? 1 : 0) + " s");
+const ago = (t) => {
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 5) return "just now";
+  if (s < 60) return s + " s ago";
+  const m = Math.round(s / 60);
+  return m < 60 ? m + " min ago" : Math.round(m / 60) + " h ago";
+};
+const clock = (t) => new Date(t).toTimeString().slice(0, 8);
+const firstLine = (s) => String(s || "").split("\n")[0].replace(/^Error: /, "");
+
+const ui = { connected: false, paused: false, follow: false, fileName: "", steps: [], open: null, els: new Map() };
+
+const held = { el: null, t: 0 };
+const release = () => {
+  if (!held.el) return;
+  const el = held.el;
+  const wait = Math.max(0, 70 - (performance.now() - held.t));
+  held.el = null;
+  setTimeout(() => el.classList.remove("down"), wait);
+};
+addEventListener("pointerdown", (e) => {
+  const el = e.target.closest(".press");
+  release();
+  if (!el) return;
+  el.classList.add("down");
+  held.el = el;
+  held.t = performance.now();
+});
+addEventListener("pointerup", release);
+addEventListener("pointercancel", release);
+
+const pill = $("pause");
+function renderPill() {
+  const a = $("pcPause"), b = $("pcResume");
+  a.classList.toggle("out", ui.paused);
+  b.classList.toggle("out", !ui.paused);
+  pill.classList.toggle("on", ui.paused);
+  pill.style.width = (ui.paused ? b : a).offsetWidth + "px";
+}
+pill.onclick = () => post({ type: "pause", value: !ui.paused });
+
+const followBtn = $("follow");
+followBtn.onclick = () => post({ type: "follow", value: !ui.follow });
+
+function errLine(step) {
+  const m = /<anonymous>:(\d+):\d+/.exec(step.stack || "") || /<anonymous>:(\d+):\d+/.exec(step.error || "");
+  if (!m) return 0;
+  const n = Number(m[1]) - 2;
+  const lines = (step.code || "").split("\n").length;
+  return n >= 1 && n <= lines ? n : 0;
+}
+
+function codeHtml(step) {
+  const bad = step.errLine;
+  return step.code
+    .replace(/\s+$/, "")
+    .split("\n")
+    .map((l, i) => `<div class="ln${i + 1 === bad ? " bad" : ""}"><span class="no num">${i + 1}</span><span class="tx">${esc(l) || " "}</span></div>`)
+    .join("");
+}
+
+function factsHtml(step) {
+  const parts = [`<b>${step.kind === "look" ? "Screenshot" : "Script"}</b>`, clock(step.at)];
+  if (step.status === "running") parts.push("running");
+  if (step.status === "blocked") parts.push("blocked while paused");
+  if (step.ms != null) parts.push(dur(step.ms));
+  if (step.createdCount) parts.push(step.createdCount + " created");
+  if (step.changed) parts.push(step.changed + " changed");
+  if (step.removed) parts.push(step.removed + " removed");
+  return parts.join(" · ");
+}
+
+function metaHtml(step) {
+  if (step.status === "running") return RING;
+  if (step.status === "blocked") return "<span>blocked</span>";
+  const out = [];
+  if (step.createdCount) out.push("+" + step.createdCount);
+  else if (step.changed) out.push("~" + step.changed);
+  if (step.removed) out.push("−" + step.removed);
+  if (step.ms != null) out.push(dur(step.ms));
+  return out.map((s) => `<span class="num">${s}</span>`).join("");
+}
+
+function rowIcon(step) {
+  if (step.status === "error") return icon("err");
+  if (step.status === "blocked") return icon("blocked");
+  return icon(step.kind);
+}
+
+function detailHtml(step) {
+  let h = `<div class="facts">${factsHtml(step)}</div>`;
+  if (step.error) h += `<div class="msg">${esc(firstLine(step.error))}</div>`;
+  if (step.code) h += `<div class="code">${codeHtml(step)}</div>`;
+  const acts = [];
+  if (step.focus && step.focus.length) acts.push(`<button class="gb press" data-act="select">${icon("select", 14)}Select</button>`);
+  if (step.code) acts.push(`<button class="gb press" data-act="copy">${icon("copy", 14)}<span>Copy code</span></button>`);
+  if (acts.length) h += `<div class="acts">${acts.join("")}</div>`;
+  return h;
+}
+
+function buildItem(step) {
+  const el = document.createElement("div");
+  el.className = "item";
+  el.innerHTML = `<div class="row press"><span class="ico"></span><span class="lb"></span><span class="mt"></span></div><div class="det"><div><div class="det-in"></div></div></div>`;
+  el.querySelector(".row").onclick = () => toggle(step.id);
+  el.querySelector(".det-in").onclick = (e) => {
+    const b = e.target.closest("[data-act]");
+    if (!b) return;
+    const s = ui.steps.find((x) => x.id === step.id);
+    if (!s) return;
+    if (b.dataset.act === "select") post({ type: "focus", ids: s.focus, key: s.id });
+    if (b.dataset.act === "copy") copy(s.code, b.querySelector("span"));
+  };
+  return el;
+}
+
+function paintItem(step) {
+  let el = ui.els.get(step.id);
+  if (!el) {
+    el = buildItem(step);
+    ui.els.set(step.id, el);
+  }
+  el.classList.toggle("running", step.status === "running");
+  el.classList.toggle("err", step.status === "error");
+  el.classList.toggle("blocked", step.status === "blocked");
+  el.classList.toggle("open", ui.open === step.id);
+  el.querySelector(".ico").innerHTML = rowIcon(step);
+  el.querySelector(".lb").textContent = step.label;
+  el.querySelector(".mt").innerHTML = metaHtml(step);
+  el.querySelector(".det-in").innerHTML = detailHtml(step);
+  if (step.status === "running") {
+    const ring = el.querySelector(".ring");
+    const left = 400 - (Date.now() - step.at);
+    left <= 0 ? ring.classList.add("vis") : setTimeout(() => ring.isConnected && ring.classList.add("vis"), left);
+  }
+  return el;
+}
+
+function renderList() {
+  const list = $("list");
+  $("empty").style.display = ui.steps.length ? "none" : "";
+  let prev = $("empty");
+  for (const step of ui.steps) {
+    const el = ui.els.get(step.id) || paintItem(step);
+    if (prev.nextSibling !== el) list.insertBefore(el, prev.nextSibling);
+    prev = el;
+  }
+  for (const [id, el] of ui.els) {
+    if (!ui.steps.some((s) => s.id === id)) {
+      el.remove();
+      ui.els.delete(id);
+    }
+  }
+}
+
+function toggle(id) {
+  const was = ui.open;
+  ui.open = was === id ? null : id;
+  for (const key of [was, ui.open]) {
+    const el = key != null && ui.els.get(key);
+    if (el) el.classList.toggle("open", ui.open === key);
+  }
+}
+
+function copy(text, label) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.cssText = "position:fixed;opacity:0";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  ta.remove();
+  if (!label) return;
+  label.textContent = "Copied";
+  clearTimeout(label._t);
+  label._t = setTimeout(() => (label.textContent = "Copy code"), 1200);
+}
+
+let busyTimer = 0;
+function renderNow() {
+  const L = $("nowLabel"), S = $("nowSub"), sep = $("sep");
+  const top = ui.steps[0];
+  const running = top && top.status === "running";
+  let label, sub, quiet = false, err = false;
+
+  if (running) {
+    label = top.label;
+    sub = `Running · <span class="t num">${dur(Date.now() - top.at)}</span>`;
+  } else if (ui.paused) {
+    label = "Paused";
+    sub = "Claude can't change this file";
+  } else if (!top) {
+    quiet = true;
+    label = ui.connected ? "Ready" : "Bridge offline";
+    sub = ui.connected ? "Waiting for Claude" : "Starts with a Claude session";
+  } else if (top.status === "error") {
+    label = top.label;
+    err = true;
+    sub = "Failed · " + esc(firstLine(top.error));
+  } else if (top.status === "blocked") {
+    label = top.label;
+    sub = "Blocked while paused · " + ago(top.at);
+  } else {
+    label = top.label;
+    sub = `Done in <span class="t num">${dur(top.ms)}</span> · ${ago(top.at + top.ms)}`;
+  }
+
+  if (L.textContent !== label) L.textContent = label;
+  L.classList.toggle("quiet", quiet);
+  if (S.innerHTML !== sub) S.innerHTML = sub;
+  S.classList.toggle("err", err);
+
+  if (running) {
+    const left = 400 - (Date.now() - top.at);
+    if (left <= 0) sep.classList.add("busy");
+    else if (!busyTimer) busyTimer = setTimeout(() => { busyTimer = 0; renderNow(); }, left);
+  } else {
+    clearTimeout(busyTimer);
+    busyTimer = 0;
+    sep.classList.remove("busy");
+  }
+}
+
+function renderStatus() {
+  $("conn").textContent = ui.connected ? "Connected" : "Offline";
+  $("file").textContent = ui.fileName ? "· " + ui.fileName : "";
+  followBtn.classList.toggle("on", ui.follow);
+  followBtn.title = ui.follow ? "Stop following changes" : "Follow changes";
+}
+
+setInterval(() => {
+  const top = ui.steps[0];
+  if (top && top.status === "running") renderNow();
+}, 100);
+setInterval(renderNow, 1000);
+
+function onStep(phase, step) {
+  if (phase === "start" || phase === "blocked") {
+    ui.steps.unshift({ ...step, status: phase === "start" ? "running" : "blocked" });
+    if (ui.steps.length > 100) ui.steps.length = 100;
+    paintItem(ui.steps[0]);
+  } else {
+    const s = ui.steps.find((x) => x.id === step.id && x.status === "running");
+    if (!s) return;
+    Object.assign(s, step, { status: step.ok ? "ok" : "error" });
+    s.errLine = s.status === "error" ? errLine(s) : 0;
+    if (s.status === "error" && ui.open == null) ui.open = s.id;
+    paintItem(s);
+  }
+  renderList();
+  renderNow();
+}
+
+const b64 = (bytes) => {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+};
+
+let ws = null;
+let hello = null;
+const send = (m) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); };
+
+function setConnected(v) {
+  if (ui.connected === v) return;
+  ui.connected = v;
+  renderStatus();
+  renderNow();
+}
+
+function connect() {
+  ws = new WebSocket("ws://localhost:3056");
+  ws.onopen = () => { setConnected(true); if (hello) send(hello); };
+  ws.onclose = () => { setConnected(false); setTimeout(connect, 1000); };
+  ws.onerror = () => {};
+  ws.onmessage = (e) => post(JSON.parse(e.data));
+}
+
+onmessage = (e) => {
+  const m = e.data.pluginMessage;
+  if (!m) return;
+  if (m.type === "hello") {
+    hello = m;
+    ui.fileName = m.fileName || "";
+    renderStatus();
+    send(m);
+  } else if (m.type === "state") {
+    ui.paused = m.paused;
+    ui.follow = m.follow;
+    renderPill();
+    renderStatus();
+    renderNow();
+  } else if (m.type === "step") {
+    onStep(m.phase, m.step);
+  } else if ("id" in m && "ok" in m) {
+    if (m.png) m.png = b64(m.png);
+    send(m);
+  }
+};
+
+const grip = $("grip");
+grip.onpointerdown = (e) => {
+  grip.setPointerCapture(e.pointerId);
+  const x0 = e.screenX, y0 = e.screenY, w0 = innerWidth, h0 = innerHeight;
+  let raf = 0, last = null;
+  const flush = (done) => { raf = 0; if (last) post({ type: "resize", width: last.w, height: last.h, done }); };
+  grip.onpointermove = (ev) => {
+    last = { w: w0 + ev.screenX - x0, h: h0 + ev.screenY - y0 };
+    if (!raf) raf = requestAnimationFrame(() => flush(false));
+  };
+  grip.onpointerup = () => {
+    grip.onpointermove = grip.onpointerup = null;
+    cancelAnimationFrame(raf);
+    flush(true);
+  };
+};
+
+document.fonts.ready.then(() => {
+  renderPill();
+  renderStatus();
+  renderNow();
+  requestAnimationFrame(() => $("shell").classList.add("in"));
+});
+
+connect();
+</script>
+</body>
+</html>
